@@ -1,4 +1,4 @@
-"""Small integration helpers for continuous-time dynamics."""
+"""连续时间动力学的数值积分工具。"""
 
 from __future__ import annotations
 

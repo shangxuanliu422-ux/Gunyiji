@@ -1,4 +1,4 @@
-"""Run RRT/RRT* path planning in a 2.5D city map."""
+"""在 2.5D 城市地图中运行 RRT 或 RRT* 路径规划。"""
 
 from __future__ import annotations
 
@@ -23,6 +23,9 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
+
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
@@ -30,10 +33,10 @@ from gunyiji.environment import Building, UrbanMap2_5D, make_default_city_map
 from gunyiji.planning import PlannerConfig, PlannerResult, RRTPlanner
 from gunyiji.planning.path_utils import height_change, path_cost, path_length
 
-# Change this variable in code to select the planner without using CLI args.
+# 不使用命令行参数时，可修改该变量选择规划算法。
 PLANNER_MODE = "rrt_star"  # "rrt" or "rrt_star"
 
-START = np.array([10.0, 20.0, 15.0], dtype=float)  # [x, y, h], h is positive upward
+START = np.array([10.0, 20.0, 15.0], dtype=float)  # [x, y, h]，h 向上为正
 GOAL = np.array([190.0, 170.0, 15.0], dtype=float)
 
 
@@ -81,7 +84,7 @@ def main() -> None:
     summary_fig = plot_planning_result(city_map, result, START, GOAL, figure_path, show=not args.no_show)
 
     if args.no_show:
-        print("tree-growth animation skipped because --no-show was set")
+        print("已设置 --no-show，跳过规划树生长动画。")
         if summary_fig is not None:
             plt.close(summary_fig)
     else:
@@ -95,21 +98,21 @@ def main() -> None:
             show=True,
         )
 
-    print(f"planner: {result.mode}")
-    print(f"status: {result.message}")
-    print(f"success: {result.success}")
-    print(f"iterations: {result.iterations}")
-    print(f"nodes: {len(result.nodes)}")
-    print(f"path points: {len(result.path)}")
-    print(f"path length: {path_length(result.path):.2f} m")
-    print(f"accumulated height change: {height_change(result.path):.2f} m")
-    print(f"height-penalized cost: {path_cost(result.path, config.height_weight):.2f}")
-    print(f"saved figure: {figure_path}")
-    print(f"saved path data: {data_path}")
-    print(f"saved planning CSV: {planning_csv_path}")
-    print(f"saved dynamics CSV: {dynamics_csv_path}")
-    print("first dynamics point [x, y, z=-h]:", result.dynamics_path[0])
-    print("last dynamics point [x, y, z=-h]:", result.dynamics_path[-1])
+    print(f"规划器：{result.mode}")
+    print(f"规划状态：{result.message}")
+    print(f"是否成功：{result.success}")
+    print(f"迭代次数：{result.iterations}")
+    print(f"树节点数量：{len(result.nodes)}")
+    print(f"路径点数量：{len(result.path)}")
+    print(f"路径长度：{path_length(result.path):.2f} m")
+    print(f"累计高度变化：{height_change(result.path):.2f} m")
+    print(f"含高度惩罚的路径代价：{path_cost(result.path, config.height_weight):.2f}")
+    print(f"结果图已保存至：{figure_path}")
+    print(f"路径数据已保存至：{data_path}")
+    print(f"规划坐标 CSV 已保存至：{planning_csv_path}")
+    print(f"动力学坐标 CSV 已保存至：{dynamics_csv_path}")
+    print("动力学坐标首点 [x, y, z=-h]：", result.dynamics_path[0])
+    print("动力学坐标末点 [x, y, z=-h]：", result.dynamics_path[-1])
 
 
 def parse_args() -> Namespace:
@@ -127,7 +130,7 @@ def parse_args() -> Namespace:
         "--planner",
         choices=("rrt", "rrt_star"),
         default=PLANNER_MODE,
-        help="planner to run; default comes from PLANNER_MODE in this file",
+        help="选择规划算法，默认值由本文件中的 PLANNER_MODE 决定",
     )
     parser.add_argument("--max-iterations", type=int, default=3200)
     parser.add_argument("--height-weight", type=float, default=2.2)
@@ -136,11 +139,11 @@ def parse_args() -> Namespace:
         "--snapshot-stride",
         type=int,
         default=100,
-        help="save one animation frame per this many planning iterations",
+        help="每经过指定次数的规划迭代保存一帧动画",
     )
     parser.add_argument("--animation-step", type=int, default=1)
     parser.add_argument("--interval-ms", type=int, default=35)
-    parser.add_argument("--no-show", action="store_true", help="skip the Matplotlib animation window")
+    parser.add_argument("--no-show", action="store_true", help="不打开 Matplotlib 动画窗口")
     return parser.parse_args()
 
 
@@ -224,20 +227,20 @@ def plot_planning_result(
     ax_3d = fig.add_subplot(grid[:, 0], projection="3d")
     draw_city_3d(ax_3d, city_map)
     draw_tree_3d(ax_3d, result.nodes, color="0.68", linewidth=0.35, alpha=0.20)
-    draw_path_3d(ax_3d, result.path, color="tab:red", linewidth=3.0, label="Final path")
-    ax_3d.scatter(start[0], start[1], start[2], color="tab:green", s=65, label="start")
-    ax_3d.scatter(goal[0], goal[1], goal[2], color="tab:red", s=65, label="goal")
+    draw_path_3d(ax_3d, result.path, color="tab:red", linewidth=3.0, label="最终路径")
+    ax_3d.scatter(start[0], start[1], start[2], color="tab:green", s=65, label="起点")
+    ax_3d.scatter(goal[0], goal[1], goal[2], color="tab:red", s=65, label="终点")
     configure_3d_axes(ax_3d, city_map)
-    ax_3d.set_title(f"{result.mode.upper()} 2.5D City Planning")
+    ax_3d.set_title(f"{result.mode.upper()} 2.5D 城市路径规划")
     ax_3d.legend(loc="upper left")
 
     ax_top = fig.add_subplot(grid[0, 1])
     draw_city_top(ax_top, city_map)
     draw_tree_top(ax_top, result.nodes, color="0.75", linewidth=0.35, alpha=0.20)
-    ax_top.plot(result.path[:, 0], result.path[:, 1], color="tab:red", linewidth=2.5, label="path")
-    ax_top.scatter(start[0], start[1], color="tab:green", s=45, label="start")
-    ax_top.scatter(goal[0], goal[1], color="tab:red", s=45, label="goal")
-    ax_top.set_title("Top View")
+    ax_top.plot(result.path[:, 0], result.path[:, 1], color="tab:red", linewidth=2.5, label="路径")
+    ax_top.scatter(start[0], start[1], color="tab:green", s=45, label="起点")
+    ax_top.scatter(goal[0], goal[1], color="tab:red", s=45, label="终点")
+    ax_top.set_title("俯视图")
     ax_top.set_xlabel("x [m]")
     ax_top.set_ylabel("y [m]")
     ax_top.set_aspect("equal", adjustable="box")
@@ -246,12 +249,12 @@ def plot_planning_result(
 
     ax_height = fig.add_subplot(grid[1, 1])
     cumulative_distance = path_distance_axis(result.path)
-    ax_height.plot(cumulative_distance, result.path[:, 2], "o-", color="tab:blue", label="path height")
-    ax_height.axhline(city_map.bounds.h_min, color="0.5", linestyle="--", linewidth=1.0, label="h bounds")
+    ax_height.plot(cumulative_distance, result.path[:, 2], "o-", color="tab:blue", label="路径高度")
+    ax_height.axhline(city_map.bounds.h_min, color="0.5", linestyle="--", linewidth=1.0, label="高度边界")
     ax_height.axhline(city_map.bounds.h_max, color="0.5", linestyle="--", linewidth=1.0)
-    ax_height.set_title("Height Profile")
-    ax_height.set_xlabel("path distance [m]")
-    ax_height.set_ylabel("height h [m]")
+    ax_height.set_title("路径高度剖面")
+    ax_height.set_xlabel("沿路径距离 [m]")
+    ax_height.set_ylabel("高度 h [m]")
     ax_height.grid(True)
     ax_height.legend()
 
@@ -296,9 +299,9 @@ def animate_tree_growth(
     ax = fig.add_subplot(111, projection="3d")
     draw_city_3d(ax, city_map)
     configure_3d_axes(ax, city_map)
-    ax.scatter(start[0], start[1], start[2], color="tab:green", s=65, label="start")
-    ax.scatter(goal[0], goal[1], goal[2], color="tab:red", s=65, label="goal")
-    ax.set_title(f"{result.mode.upper()} Tree Growth")
+    ax.scatter(start[0], start[1], start[2], color="tab:green", s=65, label="起点")
+    ax.scatter(goal[0], goal[1], goal[2], color="tab:red", s=65, label="终点")
+    ax.set_title(f"{result.mode.upper()} 规划树生长过程")
 
     empty_segment = np.full((2, 3), np.nan, dtype=float)
     tree_collection = Line3DCollection(
@@ -308,7 +311,7 @@ def animate_tree_growth(
         alpha=0.30,
     )
     ax.add_collection3d(tree_collection)
-    best_path_line, = ax.plot([], [], [], color="tab:red", linewidth=3.0, label="best path")
+    best_path_line, = ax.plot([], [], [], color="tab:red", linewidth=3.0, label="当前最优路径")
     time_text = ax.text2D(0.03, 0.94, "", transform=ax.transAxes)
     ax.legend(loc="upper left")
 
@@ -626,7 +629,7 @@ def configure_3d_axes(ax: plt.Axes, city_map: UrbanMap2_5D) -> None:
     ax.set_zlim(0.0, bounds.h_max)
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_zlabel("height h [m]")
+    ax.set_zlabel("高度 h [m]")
     ax.set_proj_type("ortho")
     ax.view_init(elev=38.0, azim=-62.0)
     ax.set_box_aspect(

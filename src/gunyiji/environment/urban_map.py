@@ -1,4 +1,4 @@
-"""A simple 2.5D city map for path-planning validation."""
+"""用于路径规划验证的简化 2.5D 城市地图。"""
 
 from __future__ import annotations
 

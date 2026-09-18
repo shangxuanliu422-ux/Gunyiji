@@ -1,4 +1,4 @@
-"""Obstacle primitives for 2.5D urban planning."""
+"""2.5D 城市路径规划使用的障碍物数据结构。"""
 
 from __future__ import annotations
 

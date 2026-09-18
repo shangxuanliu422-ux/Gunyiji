@@ -1,4 +1,4 @@
-"""CasADi nonlinear MPC for the virtual-input rolling-wing model."""
+"""基于 CasADi 的滚翼飞行器虚拟输入非线性模型预测控制器。"""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from gunyiji.dynamics.six_dof import (
     STATE_SIZE,
     as_input_vector,
     as_state_vector,
+    body_rate_from_euler_rate,
     make_state,
 )
 from gunyiji.dynamics.vehicle_params import DEFAULT_VEHICLE_PARAMS, VehicleParams
@@ -331,6 +332,10 @@ class CasadiNMPC:
         
         state_lower = np.full(nx * (horizon + 1), -np.inf, dtype=float) # np.full 创建一个指定形状的数组，并用指定的值填充。这里创建了一个大小为 nx * (horizon + 1) 的数组，所有元素都初始化为负无穷大，表示状态变量没有下界限制。
         state_upper = np.full(nx * (horizon + 1), np.inf, dtype=float)
+        # ZYX 欧拉角在俯仰 +-90 度处奇异，限制预测状态远离该坐标奇异点。
+        pitch_limit = np.deg2rad(85.0)
+        state_lower[7::nx] = -pitch_limit
+        state_upper[7::nx] = pitch_limit
         input_lower = np.tile(np.asarray(self.params.input_lower_bounds), horizon) # np.tile 将输入下界数组重复 horizon 次，形成一个长度为 nu * horizon 的数组，表示每个预测步的控制输入下界。
         input_upper = np.tile(np.asarray(self.params.input_upper_bounds), horizon)
         self._lbx = np.concatenate((state_lower, input_lower))
@@ -354,9 +359,9 @@ class CasadiNMPC:
         phi = x[6]
         theta = x[7]
         psi = x[8]
-        phi_dot = x[9]
-        theta_dot = x[10]
-        psi_dot = x[11]
+        p = x[9]
+        q = x[10]
+        r_body = x[11]
 
         fx = u[0]
         fz = u[1]
@@ -374,6 +379,11 @@ class CasadiNMPC:
         c_psi = ca.cos(psi)
         s_psi = ca.sin(psi)
 
+        tan_theta = s_theta / c_theta
+        phi_dot = p + s_phi * tan_theta * q + c_phi * tan_theta * r_body
+        theta_dot = c_phi * q - s_phi * r_body
+        psi_dot = (s_phi * q + c_phi * r_body) / c_theta
+
         ax = (c_psi * c_theta) * fx / mass
         ax += (c_psi * s_theta * c_phi + s_psi * s_phi) * fz / mass
 
@@ -384,9 +394,9 @@ class CasadiNMPC:
         az += (c_phi * c_theta) * fz / mass
         az += self.params.gravity
 
-        phi_ddot = -((iz - iy) / ix) * theta_dot * psi_dot + tau_x / ix
-        theta_ddot = -((ix - iz) / iy) * phi_dot * psi_dot + tau_y / iy
-        psi_ddot = -((iy - ix) / iz) * theta_dot * phi_dot + tau_z / iz
+        p_dot = ((iy - iz) / ix) * q * r_body + tau_x / ix
+        q_dot = ((iz - ix) / iy) * p * r_body + tau_y / iy
+        r_dot = ((ix - iy) / iz) * p * q + tau_z / iz
 
         return ca.vertcat(
             x[3],
@@ -398,9 +408,9 @@ class CasadiNMPC:
             phi_dot,
             theta_dot,
             psi_dot,
-            phi_ddot,
-            theta_ddot,
-            psi_ddot,
+            p_dot,
+            q_dot,
+            r_dot,
         ) # 相当于给状态量都求了一导
 
     def _rk4_expr(self, x: ca.MX, u: ca.MX) -> ca.MX:
@@ -616,7 +626,10 @@ class CircleTrajectory:
             position=output[0:3],
             velocity=self.velocity(t),
             attitude=output[3:6],
-            attitude_rate=(0.0, 0.0, self.angular_rate),
+            body_rate=body_rate_from_euler_rate(
+                output[3:6],
+                (0.0, 0.0, self.angular_rate),
+            ),
         )
 
     def horizon_outputs(self, start_time: float, dt: float, horizon: int) -> np.ndarray:
@@ -720,7 +733,10 @@ class HelicalTrajectory:
             position=output[0:3],
             velocity=self.velocity(t),
             attitude=output[3:6],
-            attitude_rate=(0.0, 0.0, self.angular_rate),
+            body_rate=body_rate_from_euler_rate(
+                output[3:6],
+                (0.0, 0.0, self.angular_rate),
+            ),
         )
 
     def horizon_outputs(self, start_time: float, dt: float, horizon: int) -> np.ndarray:

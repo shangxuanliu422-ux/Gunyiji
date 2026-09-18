@@ -1,4 +1,4 @@
-"""Urban planning environments."""
+"""城市路径规划环境。"""
 
 from gunyiji.environment.collision import is_edge_valid, is_state_valid
 from gunyiji.environment.obstacles import Building

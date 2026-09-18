@@ -1,4 +1,4 @@
-"""Control modules."""
+"""飞行控制模块。"""
 
 from gunyiji.control.control_allocation import (
     ACTUATOR_COUNT,

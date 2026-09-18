@@ -1,4 +1,4 @@
-"""Track the helical reference through NMPC, control allocation, and actuators."""
+"""运行包含 NMPC、控制分配和执行机构的螺旋线跟踪实验。"""
 
 from __future__ import annotations
 
@@ -20,6 +20,9 @@ if "--no-show" in sys.argv:
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
 
 for search_path in (PROJECT_ROOT, SRC_DIR):
     if str(search_path) not in sys.path:
@@ -214,7 +217,7 @@ def main() -> None:
 
     if args.no_show:
         plt.close(summary_figure)
-        print("animation window skipped because --no-show was set")
+        print("已设置 --no-show，跳过动画窗口。")
     else:
         plt.show()
         animation_figure, animation = animate_helix_3d(
@@ -227,36 +230,36 @@ def main() -> None:
         )
         if animation_figure is not None:
             animation_figure.axes[0].set_title(
-                "NMPC Helix Tracking With Control Allocation"
+                "含控制分配的 NMPC 螺旋线跟踪"
             )
             animation_figure._ani_ref = animation
             plt.show()
 
-    print(f"saved figure: {figure_path}")
-    print(f"saved data: {data_path}")
-    print(f"NMPC success rate: {nmpc_success.mean() * 100.0:.1f}%")
+    print(f"结果图已保存至：{figure_path}")
+    print(f"数据已保存至：{data_path}")
+    print(f"NMPC 求解成功率：{nmpc_success.mean() * 100.0:.1f}%")
     print(
-        "allocation success rate: "
+        "控制分配成功率："
         f"{allocation_success.mean() * 100.0:.1f}%"
     )
-    print(f"mean position error: {position_error.mean():.3f} m")
-    print(f"max position error: {position_error.max():.3f} m")
-    print(f"final position error: {position_error[-1]:.3f} m")
+    print(f"平均位置误差：{position_error.mean():.3f} m")
+    print(f"最大位置误差：{position_error.max():.3f} m")
+    print(f"终点位置误差：{position_error[-1]:.3f} m")
     print(
-        "mean attitude error: "
+        "平均姿态误差："
         f"{attitude_error.mean():.3f} rad "
         f"({np.rad2deg(attitude_error.mean()):.2f} deg)"
     )
-    print(f"mean allocation error ||u_alloc-u_cmd||: {allocation_error.mean():.4f}")
-    print(f"mean actuator lag ||u_actual-u_alloc||: {actuator_error.mean():.4f}")
+    print(f"平均控制分配误差 ||u_alloc-u_cmd||：{allocation_error.mean():.4f}")
+    print(f"平均执行机构滞后 ||u_actual-u_alloc||：{actuator_error.mean():.4f}")
     print(
-        "mean total control error ||u_actual-u_cmd||: "
+        "平均总控制误差 ||u_actual-u_cmd||："
         f"{total_control_error.mean():.4f}"
     )
-    print(f"last desired virtual input: {desired_controls[-1]}")
-    print(f"last actual virtual input: {actual_controls[-1]}")
-    print(f"last rotor speeds [rad/s]: {omega_actual[-1]}")
-    print(f"last tilt angles [deg]: {np.rad2deg(beta_actual[-1])}")
+    print(f"最后一拍期望虚拟输入：{desired_controls[-1]}")
+    print(f"最后一拍实际虚拟输入：{actual_controls[-1]}")
+    print(f"最后一拍滚翼转速 [rad/s]：{omega_actual[-1]}")
+    print(f"最后一拍偏转角 [deg]：{np.rad2deg(beta_actual[-1])}")
 
 
 def parse_args() -> Namespace:
@@ -266,45 +269,45 @@ def parse_args() -> Namespace:
         "--duration",
         type=float,
         default=24.0,
-        help="simulation duration in seconds",
+        help="仿真时长，单位为秒",
     )
     parser.add_argument(
         "--horizon",
         type=int,
         default=60,
-        help="NMPC prediction horizon",
+        help="NMPC 预测步数",
     )
     parser.add_argument(
         "--no-show",
         action="store_true",
-        help="save results without opening Matplotlib windows",
+        help="保存结果但不打开 Matplotlib 窗口",
     )
     parser.add_argument(
         "--perturbed-start",
         action="store_true",
-        help="reuse the large initial perturbation from run_mpc_tracking.py",
+        help="复用 run_mpc_tracking.py 中较大的初始偏差",
     )
     parser.add_argument(
         "--animation-step",
         type=int,
         default=1,
-        help="downsample animation frames",
+        help="动画帧下采样步长",
     )
     parser.add_argument(
         "--playback-speed",
         type=float,
         default=1.0,
-        help="animation speed multiplier; 1.0 is real simulation time",
+        help="动画播放速度倍数，1.0 表示与仿真时间一致",
     )
     args = parser.parse_args()
     if args.duration <= 0.0:
-        parser.error("--duration must be positive")
+        parser.error("--duration 必须为正数")
     if args.horizon <= 0:
-        parser.error("--horizon must be positive")
+        parser.error("--horizon 必须为正整数")
     if args.animation_step <= 0:
-        parser.error("--animation-step must be positive")
+        parser.error("--animation-step 必须为正整数")
     if args.playback_speed <= 0.0:
-        parser.error("--playback-speed must be positive")
+        parser.error("--playback-speed 必须为正数")
     return args
 
 
@@ -336,7 +339,7 @@ def plot_results(
         -refs[:, 2],
         "k--",
         linewidth=1.5,
-        label="reference",
+        label="参考轨迹",
     )
     axis_3d.plot(
         states[:, 0],
@@ -344,7 +347,7 @@ def plot_results(
         -states[:, 2],
         color="tab:blue",
         linewidth=1.8,
-        label="actual",
+        label="实际轨迹",
     )
     axis_3d.scatter(
         states[0, 0],
@@ -352,7 +355,7 @@ def plot_results(
         -states[0, 2],
         color="tab:green",
         s=35,
-        label="start",
+        label="起点",
     )
     axis_3d.scatter(
         states[-1, 0],
@@ -360,13 +363,13 @@ def plot_results(
         -states[-1, 2],
         color="tab:red",
         s=35,
-        label="end",
+        label="终点",
     )
     set_equal_3d_axes(axis_3d, refs, states)
     axis_3d.set_xlabel("x [m]")
     axis_3d.set_ylabel("y [m]")
-    axis_3d.set_zlabel("height h=-z [m]")
-    axis_3d.set_title("Helix Tracking With Allocation And Actuator Lag")
+    axis_3d.set_zlabel("高度 h=-z [m]")
+    axis_3d.set_title("含控制分配与执行机构滞后的螺旋线跟踪")
     axis_3d.legend()
 
     axis_position = figure.add_subplot(grid[0, 1])
@@ -385,18 +388,18 @@ def plot_results(
             reference_position[:, index],
             "--",
             color=color,
-            label=f"{label} ref",
+            label=f"{label} 参考值",
         )
         axis_position.plot(
             time,
             actual_position[:, index],
             "-",
             color=color,
-            label=f"{label} actual",
+            label=f"{label} 实际值",
         )
-    axis_position.set_title("Reference And Actual Position")
-    axis_position.set_xlabel("time [s]")
-    axis_position.set_ylabel("position [m]")
+    axis_position.set_title("参考位置与实际位置")
+    axis_position.set_xlabel("时间 [s]")
+    axis_position.set_ylabel("位置 [m]")
     axis_position.grid(True)
     axis_position.legend(ncol=2, fontsize=8)
 
@@ -416,7 +419,7 @@ def plot_results(
             reference_euler[:, index],
             "--",
             color,
-            f"{label} ref",
+            f"{label} 参考值",
         )
         plot_wrapped_angle(
             axis_euler,
@@ -424,32 +427,32 @@ def plot_results(
             actual_euler[:, index],
             "-",
             color,
-            f"{label} actual",
+            f"{label} 实际值",
         )
-    axis_euler.set_title("Reference And Actual Euler Angles")
-    axis_euler.set_xlabel("time [s]")
-    axis_euler.set_ylabel("Euler angle [deg]")
+    axis_euler.set_title("参考欧拉角与实际欧拉角")
+    axis_euler.set_xlabel("时间 [s]")
+    axis_euler.set_ylabel("欧拉角 [deg]")
     axis_euler.set_ylim(-185.0, 185.0)
     axis_euler.grid(True)
     axis_euler.legend(ncol=2, fontsize=8)
 
     axis_error = figure.add_subplot(grid[1, 1])
-    axis_error.plot(time, position_error, color="tab:red", label="position error")
+    axis_error.plot(time, position_error, color="tab:red", label="位置误差")
     axis_error.plot(
         control_time,
         allocation_error,
         color="tab:blue",
-        label="allocation error",
+        label="控制分配误差",
     )
     axis_error.plot(
         control_time,
         actuator_error,
         color="tab:orange",
-        label="actuator lag",
+        label="执行机构滞后",
     )
-    axis_error.set_title("Tracking And Control Realization Errors")
-    axis_error.set_xlabel("time [s]")
-    axis_error.set_ylabel("norm")
+    axis_error.set_title("跟踪误差与控制实现误差")
+    axis_error.set_xlabel("时间 [s]")
+    axis_error.set_ylabel("误差范数")
     axis_error.grid(True)
     axis_error.legend()
 
@@ -462,25 +465,25 @@ def plot_results(
             desired_controls[:, index],
             "--",
             color=color,
-            label=f"{label} desired",
+            label=f"{label} 期望值",
         )
         axis_force.plot(
             control_time,
             allocated_controls[:, index],
             ":",
             color=color,
-            label=f"{label} allocated",
+            label=f"{label} 分配值",
         )
         axis_force.plot(
             control_time,
             actual_controls[:, index],
             "-",
             color=color,
-            label=f"{label} actual",
+            label=f"{label} 实际值",
         )
-    axis_force.set_title("Virtual Forces")
-    axis_force.set_xlabel("time [s]")
-    axis_force.set_ylabel("force [N]")
+    axis_force.set_title("虚拟力")
+    axis_force.set_xlabel("时间 [s]")
+    axis_force.set_ylabel("力 [N]")
     axis_force.grid(True)
     axis_force.legend(ncol=2, fontsize=8)
 
@@ -498,18 +501,18 @@ def plot_results(
             desired_controls[:, index],
             "--",
             color=color,
-            label=f"{label} desired",
+            label=f"{label} 期望值",
         )
         axis_torque.plot(
             control_time,
             actual_controls[:, index],
             "-",
             color=color,
-            label=f"{label} actual",
+            label=f"{label} 实际值",
         )
-    axis_torque.set_title("Virtual Torques")
-    axis_torque.set_xlabel("time [s]")
-    axis_torque.set_ylabel("torque [N m]")
+    axis_torque.set_title("虚拟力矩")
+    axis_torque.set_xlabel("时间 [s]")
+    axis_torque.set_ylabel("力矩 [N m]")
     axis_torque.grid(True)
     axis_torque.legend(ncol=2, fontsize=8)
 
@@ -522,7 +525,7 @@ def plot_results(
             "--",
             color=color,
             linewidth=1.0,
-            label=f"omega{index + 1} cmd",
+            label=f"omega{index + 1} 指令",
         )
         axis_omega.plot(
             control_time,
@@ -530,11 +533,11 @@ def plot_results(
             "-",
             color=color,
             linewidth=1.5,
-            label=f"omega{index + 1} actual",
+            label=f"omega{index + 1} 实际值",
         )
-    axis_omega.set_title("Rolling-Wing Speeds")
-    axis_omega.set_xlabel("time [s]")
-    axis_omega.set_ylabel("omega [rad/s]")
+    axis_omega.set_title("滚翼转速")
+    axis_omega.set_xlabel("时间 [s]")
+    axis_omega.set_ylabel("转速 omega [rad/s]")
     axis_omega.grid(True)
     axis_omega.legend(ncol=2, fontsize=7)
 
@@ -548,7 +551,7 @@ def plot_results(
             "--",
             color=color,
             linewidth=1.0,
-            label=f"beta{index + 1} cmd",
+            label=f"beta{index + 1} 指令",
         )
         axis_beta.plot(
             control_time,
@@ -556,16 +559,16 @@ def plot_results(
             "-",
             color=color,
             linewidth=1.5,
-            label=f"beta{index + 1} actual",
+            label=f"beta{index + 1} 实际值",
         )
-    axis_beta.set_title("Rolling-Wing Tilt Angles")
-    axis_beta.set_xlabel("time [s]")
-    axis_beta.set_ylabel("beta [deg]")
+    axis_beta.set_title("滚翼偏转角")
+    axis_beta.set_xlabel("时间 [s]")
+    axis_beta.set_ylabel("偏转角 beta [deg]")
     axis_beta.grid(True)
     axis_beta.legend(ncol=2, fontsize=7)
 
     figure.suptitle(
-        "NMPC Helix Tracking With Nonlinear Control Allocation",
+        "含非线性控制分配的 NMPC 螺旋线跟踪",
         fontsize=16,
     )
     figure.savefig(figure_path, dpi=160)

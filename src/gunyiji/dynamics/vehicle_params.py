@@ -1,4 +1,4 @@
-"""Vehicle parameters for the simplified rolling-wing dynamics model."""
+"""滚翼飞行器动力学模型参数。"""
 
 from __future__ import annotations
 

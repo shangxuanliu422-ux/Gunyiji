@@ -1,4 +1,4 @@
-"""Dynamics models and integration helpers."""
+"""动力学模型与数值积分工具。"""
 
 from gunyiji.dynamics.integrators import euler_step, rk4_step, simulate, step
 from gunyiji.dynamics.six_dof import (
@@ -10,7 +10,10 @@ from gunyiji.dynamics.six_dof import (
     as_input_vector,
     as_state_vector,
     attitude_acceleration,
+    body_angular_acceleration,
+    body_rate_from_euler_rate,
     clip_virtual_input,
+    euler_angle_rates,
     make_state,
     make_virtual_input,
     output_position_attitude,
@@ -30,8 +33,11 @@ __all__ = [
     "as_input_vector",
     "as_state_vector",
     "attitude_acceleration",
+    "body_angular_acceleration",
+    "body_rate_from_euler_rate",
     "clip_virtual_input",
     "euler_step",
+    "euler_angle_rates",
     "make_state",
     "make_virtual_input",
     "output_position_attitude",
@@ -41,4 +47,4 @@ __all__ = [
     "step",
     "translational_acceleration",
 ]
-# all里的在别的模块里可以直接使用 from gunyiji.dynamics import * 来导入
+# __all__ 中列出的名称可通过 from gunyiji.dynamics import * 一次性导入。

@@ -1,4 +1,4 @@
-"""Path planning algorithms."""
+"""路径规划算法。"""
 
 from gunyiji.planning.path_utils import (
     height_change,

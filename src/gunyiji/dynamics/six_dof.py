@@ -1,14 +1,13 @@
-"""Simplified 12-state rolling-wing flight dynamics.
+"""滚翼飞行器十二状态刚体动力学模型。
 
-State order:
-    [x, y, z, vx, vy, vz, phi, theta, psi, phi_dot, theta_dot, psi_dot]
+状态排列：
+    [x, y, z, vx, vy, vz, phi, theta, psi, p, q, r]
 
-Virtual input order:
+虚拟输入排列：
     [fx, fz, tau_x, tau_y, tau_z]
 
-The earth frame is NED-like: z is positive downward, so gravity enters as +g
-in the z acceleration. At level hover, the virtual input is approximately
-fx = 0 and fz = -mass * gravity.
+地固坐标系采用类似 NED 的约定，z 轴向下为正，因此重力以 +g 的形式
+进入 z 轴加速度。水平悬停时，虚拟输入近似为 fx=0、fz=-mass*gravity。
 """
 
 from __future__ import annotations
@@ -34,9 +33,9 @@ STATE_NAMES = (
     "phi",
     "theta",
     "psi",
-    "phi_dot",
-    "theta_dot",
-    "psi_dot",
+    "p",
+    "q",
+    "r",
 )
 
 INPUT_NAMES = ("fx", "fz", "tau_x", "tau_y", "tau_z")
@@ -80,16 +79,16 @@ def make_state(
     position: Sequence[float] = (0.0, 0.0, 0.0),
     velocity: Sequence[float] = (0.0, 0.0, 0.0),
     attitude: Sequence[float] = (0.0, 0.0, 0.0),
-    attitude_rate: Sequence[float] = (0.0, 0.0, 0.0),
+    body_rate: Sequence[float] = (0.0, 0.0, 0.0),
 ) -> np.ndarray: # 这里直接初始化是因为默认参数是不可变的元组，所以不会有可变对象作为默认参数的问题。
     """
-    由位置、速度、欧拉角和欧拉角速度拼接十二维状态。
+    由位置、速度、欧拉角和机体系角速度拼接十二维状态。
     
     输入：
         position: 三维位置向量。
         velocity: 三维速度向量。
         attitude: 滚转、俯仰、偏航欧拉角向量，单位为弧度。
-        attitude_rate: 欧拉角速度向量，单位为弧度每秒。
+        body_rate: 机体系角速度 [p, q, r]，单位为弧度每秒。
     
     输出：
         拼接完成的十二维状态向量。
@@ -99,10 +98,10 @@ def make_state(
         np.asarray(position, dtype=float),
         np.asarray(velocity, dtype=float),
         np.asarray(attitude, dtype=float),
-        np.asarray(attitude_rate, dtype=float),
+        np.asarray(body_rate, dtype=float),
     )
     for name, part in zip(
-        ("position", "velocity", "attitude", "attitude_rate"), parts, strict=True
+        ("position", "velocity", "attitude", "body_rate"), parts, strict=True
     ):
         if part.shape != (3,):
             raise ValueError(f"{name} must have shape (3,), got {part.shape}")
@@ -198,32 +197,120 @@ def translational_acceleration(
     return np.array([ax, ay, az], dtype=float)
 
 
-def attitude_acceleration(
-    attitude_rate: Sequence[float],
+def euler_angle_rates(
+    attitude: Sequence[float],
+    body_rate: Sequence[float],
+) -> np.ndarray:
+    """
+    将机体系角速度转换为 ZYX 欧拉角变化率。
+
+    输入：
+        attitude: 欧拉角 [phi, theta, psi]，单位为弧度。
+        body_rate: 机体系角速度 [p, q, r]，单位为弧度每秒。
+
+    输出：
+        欧拉角变化率 [phi_dot, theta_dot, psi_dot]。
+
+    说明：
+        ZYX 欧拉角在 theta=+-90 度处存在坐标奇异性。
+    """
+
+    attitude_array = np.asarray(attitude, dtype=float)
+    body_rate_array = np.asarray(body_rate, dtype=float)
+    if attitude_array.shape != (3,):
+        raise ValueError(f"attitude must have shape (3,), got {attitude_array.shape}")
+    if body_rate_array.shape != (3,):
+        raise ValueError(f"body_rate must have shape (3,), got {body_rate_array.shape}")
+
+    phi, theta, _ = attitude_array
+    p, q, r = body_rate_array
+    c_phi = cos(phi)
+    s_phi = sin(phi)
+    c_theta = cos(theta)
+    if abs(c_theta) < 1.0e-8:
+        raise ValueError("ZYX Euler-angle kinematics are singular at theta=+-90 deg")
+
+    tan_theta = sin(theta) / c_theta
+    return np.array(
+        [
+            p + s_phi * tan_theta * q + c_phi * tan_theta * r,
+            c_phi * q - s_phi * r,
+            (s_phi * q + c_phi * r) / c_theta,
+        ],
+        dtype=float,
+    )
+
+
+def body_rate_from_euler_rate(
+    attitude: Sequence[float],
+    euler_rate: Sequence[float],
+) -> np.ndarray:
+    """
+    将 ZYX 欧拉角变化率转换为机体系角速度。
+
+    输入：
+        attitude: 欧拉角 [phi, theta, psi]，单位为弧度。
+        euler_rate: 欧拉角变化率 [phi_dot, theta_dot, psi_dot]。
+
+    输出：
+        机体系角速度 [p, q, r]。
+    """
+
+    attitude_array = np.asarray(attitude, dtype=float)
+    euler_rate_array = np.asarray(euler_rate, dtype=float)
+    if attitude_array.shape != (3,):
+        raise ValueError(f"attitude must have shape (3,), got {attitude_array.shape}")
+    if euler_rate_array.shape != (3,):
+        raise ValueError(f"euler_rate must have shape (3,), got {euler_rate_array.shape}")
+
+    phi, theta, _ = attitude_array
+    phi_dot, theta_dot, psi_dot = euler_rate_array
+    return np.array(
+        [
+            phi_dot - sin(theta) * psi_dot,
+            cos(phi) * theta_dot + sin(phi) * cos(theta) * psi_dot,
+            -sin(phi) * theta_dot + cos(phi) * cos(theta) * psi_dot,
+        ],
+        dtype=float,
+    )
+
+
+def body_angular_acceleration(
+    body_rate: Sequence[float],
     virtual_torque: Sequence[float],
     params: VehicleParams = DEFAULT_VEHICLE_PARAMS,
 ) -> np.ndarray:
     """
-    根据角速度、虚拟力矩和惯量计算欧拉角加速度。
+    根据机体系角速度、虚拟力矩和主惯量计算机体系角加速度。
     
     输入：
-        attitude_rate: 欧拉角速度向量，单位为弧度每秒。
+        body_rate: 机体系角速度 [p, q, r]，单位为弧度每秒。
         virtual_torque: 三个虚拟控制力矩 [tau_x, tau_y, tau_z]。
         params: 飞行器物理参数对象。
     
     输出：
-        滚转、俯仰和偏航角加速度向量。
+        机体系角加速度 [p_dot, q_dot, r_dot]。
     """
 
-    phi_dot, theta_dot, psi_dot = np.asarray(attitude_rate, dtype=float)
+    p, q, r = np.asarray(body_rate, dtype=float)
     tau_x, tau_y, tau_z = np.asarray(virtual_torque, dtype=float)
     ix, iy, iz = params.inertia
 
-    phi_ddot = -((iz - iy) / ix) * theta_dot * psi_dot + tau_x / ix
-    theta_ddot = -((ix - iz) / iy) * phi_dot * psi_dot + tau_y / iy
-    psi_ddot = -((iy - ix) / iz) * theta_dot * phi_dot + tau_z / iz
+    p_dot = ((iy - iz) / ix) * q * r + tau_x / ix
+    q_dot = ((iz - ix) / iy) * p * r + tau_y / iy
+    r_dot = ((ix - iy) / iz) * p * q + tau_z / iz
 
-    return np.array([phi_ddot, theta_ddot, psi_ddot], dtype=float)
+    return np.array([p_dot, q_dot, r_dot], dtype=float)
+
+
+def attitude_acceleration(
+    body_rate: Sequence[float],
+    virtual_torque: Sequence[float],
+    params: VehicleParams = DEFAULT_VEHICLE_PARAMS,
+) -> np.ndarray:
+    """兼容旧接口，返回机体系角加速度 [p_dot, q_dot, r_dot]。"""
+
+    return body_angular_acceleration(body_rate, virtual_torque, params)
 
 
 def state_derivative(
@@ -252,10 +339,11 @@ def state_derivative(
 
     velocity = x[3:6]
     attitude = x[6:9]
-    attitude_rate = x[9:12]
+    body_rate = x[9:12]
 
     acceleration = translational_acceleration(attitude, u[0:2], params)
-    angular_acceleration = attitude_acceleration(attitude_rate, u[2:5], params)
+    attitude_rate = euler_angle_rates(attitude, body_rate)
+    angular_acceleration = body_angular_acceleration(body_rate, u[2:5], params)
 
     dx = np.zeros(STATE_SIZE, dtype=float)
     dx[0:3] = velocity

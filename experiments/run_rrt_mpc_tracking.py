@@ -1,4 +1,4 @@
-"""Plan an urban RRT* path, smooth it, and track it with NMPC."""
+"""规划城市 RRT* 路径，经平滑和时间参数化后使用 NMPC 跟踪。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ if "--no-show" in sys.argv:
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -70,7 +73,7 @@ def main() -> None:
         snapshot_stride=100,
     )
     if not planner_result.success:
-        raise RuntimeError("RRT* did not reach the goal")
+        raise RuntimeError("RRT* 未能到达终点")
 
     trajectory_config = TrajectoryGenerationConfig(
         dt=0.1,
@@ -104,7 +107,7 @@ def main() -> None:
         position=trajectory.position[0],
         velocity=trajectory.velocity[0],
         attitude=(0.0, 0.0, trajectory.yaw[0]),
-        attitude_rate=(0.0, 0.0, 0.0),
+        body_rate=(0.0, 0.0, 0.0),
     )
     previous_input = model.hover_input()
 
@@ -161,26 +164,26 @@ def main() -> None:
             show=True,
         )
 
-    print(f"raw RRT* points: {len(trajectory.raw_path)}")
-    print(f"shortcut points: {len(trajectory.shortcut_path)}")
-    print(f"spline samples: {len(trajectory.smooth_path)}")
-    print(f"spline smoothing strength: {trajectory.spline_smoothing:.3f}")
-    print(f"spline control spacing: {trajectory.spline_control_spacing:.2f} m")
-    print(f"trajectory duration: {trajectory.time[-1]:.2f} s")
-    print(f"maximum reference speed: {trajectory.speed.max():.2f} m/s")
+    print(f"原始 RRT* 路径点数：{len(trajectory.raw_path)}")
+    print(f"Shortcut 后路径点数：{len(trajectory.shortcut_path)}")
+    print(f"B 样条密集采样点数：{len(trajectory.smooth_path)}")
+    print(f"B 样条平滑强度：{trajectory.spline_smoothing:.3f}")
+    print(f"B 样条控制点间距：{trajectory.spline_control_spacing:.2f} m")
+    print(f"轨迹持续时间：{trajectory.time[-1]:.2f} s")
+    print(f"最大参考速度：{trajectory.speed.max():.2f} m/s")
     print(
-        "maximum reference acceleration: "
+        "最大参考加速度："
         f"{np.linalg.norm(trajectory.acceleration, axis=1).max():.2f} m/s^2"
     )
-    print(f"solver success rate: {solver_success.mean() * 100.0:.1f}%")
-    print(f"mean position error: {position_error.mean():.3f} m")
-    print(f"max position error: {position_error.max():.3f} m")
-    print(f"final position error: {position_error[-1]:.3f} m")
-    print(f"mean velocity error: {velocity_error.mean():.3f} m/s")
-    print(f"mean yaw error: {np.rad2deg(np.abs(yaw_error)).mean():.2f} deg")
-    print(f"saved reference: {OUTPUT_DIR / 'rrt_star_reference_trajectory.npz'}")
-    print(f"saved tracking result: {OUTPUT_DIR / 'rrt_star_nmpc_tracking_data.npz'}")
-    print(f"saved figure: {figure_path}")
+    print(f"NMPC 求解成功率：{solver_success.mean() * 100.0:.1f}%")
+    print(f"平均位置误差：{position_error.mean():.3f} m")
+    print(f"最大位置误差：{position_error.max():.3f} m")
+    print(f"终点位置误差：{position_error[-1]:.3f} m")
+    print(f"平均速度误差：{velocity_error.mean():.3f} m/s")
+    print(f"平均偏航误差：{np.rad2deg(np.abs(yaw_error)).mean():.2f} deg")
+    print(f"参考轨迹已保存至：{OUTPUT_DIR / 'rrt_star_reference_trajectory.npz'}")
+    print(f"跟踪结果已保存至：{OUTPUT_DIR / 'rrt_star_nmpc_tracking_data.npz'}")
+    print(f"结果图已保存至：{figure_path}")
 
 
 def parse_args() -> Namespace:
@@ -202,13 +205,13 @@ def parse_args() -> Namespace:
         "--animation-step",
         type=int,
         default=1,
-        help="downsample animation frames; 1 keeps every NMPC sample",
+        help="动画帧下采样步长，1 表示保留每个 NMPC 采样点",
     )
     parser.add_argument(
         "--playback-speed",
         type=float,
         default=1.0,
-        help="animation speed multiplier; 1.0 follows simulation time",
+        help="动画播放速度倍数，1.0 表示与仿真时间一致",
     )
     parser.add_argument("--no-show", action="store_true")
     return parser.parse_args()
@@ -360,7 +363,7 @@ def plot_results(
         color="0.45",
         linewidth=1.0,
         markersize=3,
-        label="RRT* path",
+        label="RRT* 原始路径",
     )
     ax_3d.plot(
         trajectory.shortcut_path[:, 0],
@@ -370,7 +373,7 @@ def plot_results(
         color="tab:orange",
         linewidth=1.4,
         markersize=4,
-        label="shortcut",
+        label="Shortcut 路径",
     )
     ax_3d.plot(
         trajectory.position_planning[:, 0],
@@ -378,7 +381,7 @@ def plot_results(
         trajectory.position_planning[:, 2],
         color="tab:red",
         linewidth=2.5,
-        label="smooth reference",
+        label="平滑参考轨迹",
     )
     ax_3d.plot(
         states[:, 0],
@@ -393,8 +396,8 @@ def plot_results(
     ax_3d.set_zlim(0.0, city_map.bounds.h_max)
     ax_3d.set_xlabel("x [m]")
     ax_3d.set_ylabel("y [m]")
-    ax_3d.set_zlabel("height h=-z [m]")
-    ax_3d.set_title("RRT* Path Processing And NMPC Tracking")
+    ax_3d.set_zlabel("高度 h=-z [m]")
+    ax_3d.set_title("RRT* 路径处理与 NMPC 跟踪")
     ax_3d.set_box_aspect((200, 200, 80))
     ax_3d.view_init(elev=34.0, azim=-62.0)
     ax_3d.legend(loc="upper left", fontsize=8)
@@ -406,11 +409,11 @@ def plot_results(
     for index, (label, color) in enumerate(
         zip(("x", "y", "h"), ("tab:blue", "tab:orange", "tab:green"), strict=True)
     ):
-        ax_position.plot(time, reference_position[:, index], "--", color=color, label=f"{label} ref")
-        ax_position.plot(time, actual_position[:, index], "-", color=color, label=f"{label} actual")
-    ax_position.set_title("Position")
-    ax_position.set_xlabel("time [s]")
-    ax_position.set_ylabel("position [m]")
+        ax_position.plot(time, reference_position[:, index], "--", color=color, label=f"{label} 参考值")
+        ax_position.plot(time, actual_position[:, index], "-", color=color, label=f"{label} 实际值")
+    ax_position.set_title("位置")
+    ax_position.set_xlabel("时间 [s]")
+    ax_position.set_ylabel("位置 [m]")
     ax_position.grid(True)
     ax_position.legend(ncol=2, fontsize=8)
 
@@ -418,28 +421,28 @@ def plot_results(
     for index, (label, color) in enumerate(
         zip(("vx", "vy", "vz"), ("tab:blue", "tab:orange", "tab:green"), strict=True)
     ):
-        ax_velocity.plot(time, trajectory.velocity[:, index], "--", color=color, label=f"{label} ref")
-        ax_velocity.plot(time, states[:, 3 + index], "-", color=color, label=f"{label} actual")
-    ax_velocity.set_title("Velocity In Dynamics Coordinates")
-    ax_velocity.set_xlabel("time [s]")
-    ax_velocity.set_ylabel("velocity [m/s]")
+        ax_velocity.plot(time, trajectory.velocity[:, index], "--", color=color, label=f"{label} 参考值")
+        ax_velocity.plot(time, states[:, 3 + index], "-", color=color, label=f"{label} 实际值")
+    ax_velocity.set_title("动力学坐标系速度")
+    ax_velocity.set_xlabel("时间 [s]")
+    ax_velocity.set_ylabel("速度 [m/s]")
     ax_velocity.grid(True)
     ax_velocity.legend(ncol=2, fontsize=8)
 
     ax_error = fig.add_subplot(grid[2, 0])
-    ax_error.plot(time, position_error, label="position [m]")
-    ax_error.plot(time, velocity_error, label="velocity [m/s]")
-    ax_error.plot(time, np.rad2deg(np.abs(yaw_error)), label="|yaw| [deg]")
-    ax_error.set_title("Tracking Errors")
-    ax_error.set_xlabel("time [s]")
+    ax_error.plot(time, position_error, label="位置误差 [m]")
+    ax_error.plot(time, velocity_error, label="速度误差 [m/s]")
+    ax_error.plot(time, np.rad2deg(np.abs(yaw_error)), label="偏航误差绝对值 [deg]")
+    ax_error.set_title("跟踪误差")
+    ax_error.set_xlabel("时间 [s]")
     ax_error.grid(True)
     ax_error.legend()
 
     ax_control = fig.add_subplot(grid[2, 1])
     for index, label in enumerate(("fx", "fz", "tau_x", "tau_y", "tau_z")):
         ax_control.plot(time[:-1], controls[:, index], label=label)
-    ax_control.set_title("Virtual Inputs")
-    ax_control.set_xlabel("time [s]")
+    ax_control.set_title("虚拟控制输入")
+    ax_control.set_xlabel("时间 [s]")
     ax_control.grid(True)
     ax_control.legend(ncol=2, fontsize=8)
 
@@ -551,10 +554,10 @@ def animate_path_tracking_3d(
 
     fig = plt.figure(figsize=(11, 8))
     ax = fig.add_subplot(111, projection="3d")
-    ax.set_title("RRT* Smoothed Path NMPC Tracking")
+    ax.set_title("RRT* 平滑轨迹 NMPC 跟踪")
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_zlabel("height h=-z [m]")
+    ax.set_zlabel("高度 h=-z [m]")
     ax.grid(True)
     ax.view_init(elev=30.0, azim=-60.0)
 
@@ -579,7 +582,7 @@ def animate_path_tracking_3d(
         "--",
         color="tab:red",
         linewidth=2.2,
-        label="Final smoothed reference",
+        label="最终平滑参考轨迹",
     )
     actual_trail, = ax.plot(
         [],
@@ -587,7 +590,7 @@ def animate_path_tracking_3d(
         [],
         color="tab:blue",
         linewidth=2.3,
-        label="NMPC actual trail",
+        label="NMPC 实际轨迹",
     )
     vehicle_dot = ax.scatter(
         actual[0, 0],
@@ -596,7 +599,7 @@ def animate_path_tracking_3d(
         color="black",
         s=55,
         depthshade=False,
-        label="Vehicle",
+        label="飞行器",
     )
 
     body_axis_length = max(3.0, 0.035 * horizontal_span)
@@ -655,8 +658,8 @@ def animate_path_tracking_3d(
         speed = float(np.linalg.norm(velocity[frame_index]))
         status_text.set_text(
             f"t = {sampled_time[frame_index]:.1f} s\n"
-            f"speed = {speed:.2f} m/s\n"
-            f"position = ({point[0]:.1f}, {point[1]:.1f}, {point[2]:.1f}) m"
+            f"速度 = {speed:.2f} m/s\n"
+            f"位置 = ({point[0]:.1f}, {point[1]:.1f}, {point[2]:.1f}) m"
         )
         return actual_trail, vehicle_dot, status_text, *body_axis_quivers
 
@@ -768,5 +771,5 @@ def wrap_to_pi(angle: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
-    print("Running...")
+    print("正在运行……")
     main()

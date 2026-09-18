@@ -1,5 +1,5 @@
 
-"""Nonlinear control allocation and first-order actuators for four rolling wings."""
+"""四滚翼非线性控制分配与一阶执行机构模型。"""
 
 from __future__ import annotations
 
@@ -33,10 +33,10 @@ class RollingWingParams:
 
     thrust_coefficient: float = 1.4e-5
     mount_positions: tuple[tuple[float, float, float], ...] = (
-        (0.22, -0.18, 0.0),  # 1: front-left
-        (0.22, 0.18, 0.0),  # 2: front-right
-        (-0.22, 0.18, 0.0),  # 3: rear-right
-        (-0.22, -0.18, 0.0),  # 4: rear-left
+        (0.22, -0.18, 0.0),  # 1 号滚翼：前左
+        (0.22, 0.18, 0.0),  # 2 号滚翼：前右
+        (-0.22, 0.18, 0.0),  # 3 号滚翼：后右
+        (-0.22, -0.18, 0.0),  # 4 号滚翼：后左
     )
     spin_directions: tuple[int, int, int, int] = (1, -1, 1, -1)
 

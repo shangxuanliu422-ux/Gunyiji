@@ -1,4 +1,4 @@
-"""Convert a collision-free waypoint path into an NMPC reference trajectory."""
+"""将无碰撞离散路径转换为 NMPC 可跟踪的连续参考轨迹。"""
 
 from __future__ import annotations
 

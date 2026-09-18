@@ -1,4 +1,4 @@
-"""RRT and RRT* planners for 2.5D urban maps."""
+"""用于 2.5D 城市地图的 RRT 与 RRT* 规划器。"""
 
 from __future__ import annotations
 
@@ -272,11 +272,11 @@ class RRTPlanner:
         success = best_goal_idx is not None
         if success:
             path = self._extract_path(nodes, best_goal_idx)
-            message = "path found"
+            message = "已找到通往终点的路径"
         else:
             nearest_goal_idx = self._nearest(nodes, goal_arr)
             path = self._extract_path(nodes, nearest_goal_idx)
-            message = "goal not reached; returning nearest partial path"
+            message = "未到达终点，返回距离终点最近的部分路径"
 
         if len(snapshots) == 0 or not np.array_equal(snapshots[-1].points, self._points(nodes)):
             snapshots.append(

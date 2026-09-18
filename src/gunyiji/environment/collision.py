@@ -1,4 +1,4 @@
-"""Collision helper functions for 2.5D planning."""
+"""2.5D 路径规划碰撞检测工具。"""
 
 from __future__ import annotations
 

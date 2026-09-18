@@ -1,4 +1,4 @@
-"""Render saved RRT*, smoothed-reference and NMPC data with Plotly."""
+"""使用 Plotly 展示已保存的 RRT*、平滑参考轨迹和 NMPC 跟踪数据。"""
 
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def main() -> None:
     HTML_OUTPUT.write_text(html, encoding="utf-8")
     if not args.no_show:
         webbrowser.open(HTML_OUTPUT.resolve().as_uri())
-    print(f"saved Plotly result: {HTML_OUTPUT}")
+    print(f"Plotly 结果页已保存至：{HTML_OUTPUT}")
 
 
 def parse_args() -> Namespace:
@@ -109,7 +109,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--no-show",
         action="store_true",
-        help="write the HTML without opening it in the browser",
+        help="只写入 HTML 文件，不在浏览器中打开",
     )
     return parser.parse_args()
 
@@ -126,11 +126,11 @@ def load_saved_results() -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     """
     if not REFERENCE_DATA.exists():
         raise FileNotFoundError(
-            f"missing {REFERENCE_DATA}; run experiments/run_rrt_mpc_tracking.py first"
+            f"缺少 {REFERENCE_DATA}；请先运行 experiments/run_rrt_mpc_tracking.py"
         )
     if not TRACKING_DATA.exists():
         raise FileNotFoundError(
-            f"missing {TRACKING_DATA}; run experiments/run_rrt_mpc_tracking.py first"
+            f"缺少 {TRACKING_DATA}；请先运行 experiments/run_rrt_mpc_tracking.py"
         )
 
     with np.load(REFERENCE_DATA) as data:
@@ -168,9 +168,9 @@ def build_result_figure(
         horizontal_spacing=0.045,
         vertical_spacing=0.12,
         subplot_titles=(
-            "Urban 3D Path Planning And Tracking",
-            "Top View",
-            "Height And Speed",
+            "城市三维路径规划与跟踪",
+            "俯视图",
+            "高度与速度",
         ),
     )
 
@@ -235,7 +235,7 @@ def add_paths_3d(
     figure.add_trace(
         path_3d_trace(
             raw,
-            name="RRT* waypoints",
+            name="RRT* 路径点",
             color=COLORS["raw"],
             width=3,
             dash="dash",
@@ -249,7 +249,7 @@ def add_paths_3d(
     figure.add_trace(
         path_3d_trace(
             shortcut,
-            name="Shortcut path",
+            name="Shortcut 路径",
             color=COLORS["shortcut"],
             width=5,
             mode="lines+markers",
@@ -262,10 +262,10 @@ def add_paths_3d(
     figure.add_trace(
         path_3d_trace(
             spline,
-            name="Cubic B-spline",
+            name="三次 B 样条",
             color=COLORS["spline"],
             width=5,
-            hover_text=_point_hover(spline, "B-spline"),
+            hover_text=_point_hover(spline, "B 样条"),
         ),
         row=1,
         col=1,
@@ -273,17 +273,17 @@ def add_paths_3d(
     figure.add_trace(
         path_3d_trace(
             timed,
-            name="Timed reference",
+            name="时标参考轨迹",
             color=COLORS["reference"],
             width=7,
             dash="dash",
             hover_text=[
                 (
-                    f"Reference<br>t={time[index]:.1f} s"
+                    f"参考轨迹<br>t={time[index]:.1f} s"
                     f"<br>x={point[0]:.2f} m"
                     f"<br>y={point[1]:.2f} m"
                     f"<br>h={point[2]:.2f} m"
-                    f"<br>speed={speed[index]:.2f} m/s"
+                    f"<br>速度={speed[index]:.2f} m/s"
                 )
                 for index, point in enumerate(timed)
             ],
@@ -294,7 +294,7 @@ def add_paths_3d(
     figure.add_trace(
         path_3d_trace(
             actual,
-            name="NMPC actual",
+            name="NMPC 实际轨迹",
             color=COLORS["actual"],
             width=6,
             hover_text=[
@@ -317,9 +317,9 @@ def add_paths_3d(
             z=[timed[0, 2]],
             mode="markers",
             marker={"size": 7, "color": COLORS["start"], "symbol": "circle"},
-            name="Start",
+            name="起点",
             legendgroup="endpoints",
-            hovertemplate="Start<br>x=%{x:.2f}<br>y=%{y:.2f}<br>h=%{z:.2f}<extra></extra>",
+            hovertemplate="起点<br>x=%{x:.2f}<br>y=%{y:.2f}<br>h=%{z:.2f}<extra></extra>",
         ),
         row=1,
         col=1,
@@ -331,9 +331,9 @@ def add_paths_3d(
             z=[timed[-1, 2]],
             mode="markers",
             marker={"size": 7, "color": COLORS["goal"], "symbol": "diamond"},
-            name="Goal",
+            name="终点",
             legendgroup="endpoints",
-            hovertemplate="Goal<br>x=%{x:.2f}<br>y=%{y:.2f}<br>h=%{z:.2f}<extra></extra>",
+            hovertemplate="终点<br>x=%{x:.2f}<br>y=%{y:.2f}<br>h=%{z:.2f}<extra></extra>",
         ),
         row=1,
         col=1,
@@ -380,8 +380,8 @@ def add_top_view(
     top_paths = (
         ("RRT*", reference["raw_path"], COLORS["raw"], "dash", 2),
         ("Shortcut", reference["shortcut_path"], COLORS["shortcut"], "solid", 3),
-        ("B-spline", reference["smooth_path"], COLORS["spline"], "dot", 3),
-        ("Reference", reference["position_planning"], COLORS["reference"], "dash", 4),
+        ("B 样条", reference["smooth_path"], COLORS["spline"], "dot", 3),
+        ("参考轨迹", reference["position_planning"], COLORS["reference"], "dash", 4),
         ("NMPC", actual, COLORS["actual"], "solid", 3),
     )
     for name, path, color, dash, width in top_paths:
@@ -432,10 +432,10 @@ def add_profiles(
             y=reference_height,
             mode="lines",
             line={"color": COLORS["reference"], "width": 3, "dash": "dash"},
-            name="Height reference",
+            name="参考高度",
             legendgroup="profiles",
             showlegend=False,
-            hovertemplate="t=%{x:.1f} s<br>h ref=%{y:.2f} m<extra></extra>",
+            hovertemplate="t=%{x:.1f} s<br>参考高度=%{y:.2f} m<extra></extra>",
         ),
         row=2,
         col=2,
@@ -447,10 +447,10 @@ def add_profiles(
             y=actual_height,
             mode="lines",
             line={"color": COLORS["actual"], "width": 2.5},
-            name="Height actual",
+            name="实际高度",
             legendgroup="profiles",
             showlegend=False,
-            hovertemplate="t=%{x:.1f} s<br>h actual=%{y:.2f} m<extra></extra>",
+            hovertemplate="t=%{x:.1f} s<br>实际高度=%{y:.2f} m<extra></extra>",
         ),
         row=2,
         col=2,
@@ -462,10 +462,10 @@ def add_profiles(
             y=reference_speed,
             mode="lines",
             line={"color": COLORS["shortcut"], "width": 2.5, "dash": "dash"},
-            name="Speed reference",
+            name="参考速度",
             legendgroup="profiles",
             showlegend=False,
-            hovertemplate="t=%{x:.1f} s<br>speed ref=%{y:.2f} m/s<extra></extra>",
+            hovertemplate="t=%{x:.1f} s<br>参考速度=%{y:.2f} m/s<extra></extra>",
         ),
         row=2,
         col=2,
@@ -477,10 +477,10 @@ def add_profiles(
             y=actual_speed,
             mode="lines",
             line={"color": "#0F766E", "width": 2},
-            name="Speed actual",
+            name="实际速度",
             legendgroup="profiles",
             showlegend=False,
-            hovertemplate="t=%{x:.1f} s<br>speed actual=%{y:.2f} m/s<extra></extra>",
+            hovertemplate="t=%{x:.1f} s<br>实际速度=%{y:.2f} m/s<extra></extra>",
         ),
         row=2,
         col=2,
@@ -518,7 +518,7 @@ def apply_layout(
         autosize=True,
         margin={"l": 42, "r": 46, "t": 155, "b": 82},
         title={
-            "text": "<b>RRT* Path Processing And NMPC Tracking</b>",
+            "text": "<b>RRT* 路径处理与 NMPC 跟踪</b>",
             "x": 0.5,
             "xanchor": "center",
             "y": 0.985,
@@ -538,7 +538,7 @@ def apply_layout(
             "entrywidth": 120,
             "entrywidthmode": "pixels",
         },
-        hoverlabel={"bgcolor": "white", "font_size": 12, "font_family": "Arial"},
+        hoverlabel={"bgcolor": "white", "font_size": 12, "font_family": "Microsoft YaHei"},
     )
     figure.update_scenes(
         xaxis={
@@ -554,7 +554,7 @@ def apply_layout(
             "gridcolor": "#D1D5DB",
         },
         zaxis={
-            "title": "height h=-z [m]",
+            "title": "高度 h=-z [m]",
             "range": [0.0, city_map.bounds.h_max],
             "backgroundcolor": "#F8FAFC",
             "gridcolor": "#D1D5DB",
@@ -586,14 +586,14 @@ def apply_layout(
         col=2,
     )
     figure.update_xaxes(
-        title_text="time [s]",
+        title_text="时间 [s]",
         showgrid=True,
         gridcolor="#D1D5DB",
         row=2,
         col=2,
     )
     figure.update_yaxes(
-        title_text="height [m]",
+        title_text="高度 [m]",
         showgrid=True,
         gridcolor="#D1D5DB",
         row=2,
@@ -601,7 +601,7 @@ def apply_layout(
         secondary_y=False,
     )
     figure.update_yaxes(
-        title_text="speed [m/s]",
+        title_text="速度 [m/s]",
         showgrid=False,
         row=2,
         col=2,
@@ -617,14 +617,14 @@ def apply_layout(
         showarrow=False,
         align="center",
         text=(
-            f"RRT*: {len(reference['raw_path'])} points"
-            f" &nbsp;&nbsp; | &nbsp;&nbsp; Shortcut: {len(reference['shortcut_path'])} points"
-            f" &nbsp;&nbsp; | &nbsp;&nbsp; Duration: {reference['time'][-1]:.1f} s"
-            f" &nbsp;&nbsp; | &nbsp;&nbsp; NMPC success: {success_rate:.1f}%"
+            f"RRT*：{len(reference['raw_path'])} 个点"
+            f" &nbsp;&nbsp; | &nbsp;&nbsp; Shortcut：{len(reference['shortcut_path'])} 个点"
+            f" &nbsp;&nbsp; | &nbsp;&nbsp; 持续时间：{reference['time'][-1]:.1f} s"
+            f" &nbsp;&nbsp; | &nbsp;&nbsp; NMPC 成功率：{success_rate:.1f}%"
             "<br>"
-            f"Mean position error: {position_error.mean():.4f} m"
-            f" &nbsp;&nbsp; | &nbsp;&nbsp; Max position error: {position_error.max():.3f} m"
-            f" &nbsp;&nbsp; | &nbsp;&nbsp; Mean speed error: {speed_error.mean():.4f} m/s"
+            f"平均位置误差：{position_error.mean():.4f} m"
+            f" &nbsp;&nbsp; | &nbsp;&nbsp; 最大位置误差：{position_error.max():.3f} m"
+            f" &nbsp;&nbsp; | &nbsp;&nbsp; 平均速度误差：{speed_error.mean():.4f} m/s"
         ),
         font={"size": 12, "color": "#374151"},
         bgcolor="rgba(255,255,255,0.92)",
@@ -670,12 +670,12 @@ def building_mesh(building: Building, show_legend: bool) -> go.Mesh3d:
             "roughness": 0.82,
         },
         lightposition={"x": 100, "y": -80, "z": 180},
-        name="Buildings",
+        name="建筑物",
         legendgroup="buildings",
         showlegend=show_legend,
         hovertext=(
-            f"{building.name}<br>height={building.height:.1f} m"
-            f"<br>size={building.size[0]:.0f} x {building.size[1]:.0f} m"
+            f"{building.name}<br>高度={building.height:.1f} m"
+            f"<br>尺寸={building.size[0]:.0f} x {building.size[1]:.0f} m"
         ),
         hovertemplate="%{hovertext}<extra></extra>",
     )
@@ -712,7 +712,7 @@ def building_wireframe(building: Building, show_legend: bool) -> go.Scatter3d:
         mode="lines",
         line={"color": COLORS["clearance"], "width": 2},
         opacity=0.42,
-        name="Inflated safety boundary",
+        name="膨胀安全边界",
         legendgroup="clearance",
         showlegend=show_legend,
         hoverinfo="skip",

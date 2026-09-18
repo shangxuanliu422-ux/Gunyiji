@@ -1,4 +1,4 @@
-"""Path utility functions for [x, y, h] planning coordinates."""
+"""规划坐标 [x, y, h] 下的路径处理工具。"""
 
 from __future__ import annotations
 

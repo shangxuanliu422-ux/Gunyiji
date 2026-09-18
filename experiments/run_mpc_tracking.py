@@ -1,4 +1,4 @@
-"""Run virtual-input NMPC tracking on an ascending helical trajectory."""
+"""运行采用虚拟控制输入的 NMPC 螺旋上升轨迹跟踪实验。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ if "--no-show" in sys.argv:
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -69,7 +72,7 @@ def main() -> None:
     """ position: Sequence[float] = (0.0, 0.0, 0.0),
     velocity: Sequence[float] = (0.0, 0.0, 0.0),
     attitude: Sequence[float] = (0.0, 0.0, 0.0),
-    attitude_rate: Sequence[float] = (0.0, 0.0, 0.0), """
+    body_rate: Sequence[float] = (0.0, 0.0, 0.0), """
     states[0] = np.array([0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.5, 0.1, 0.0, 0.4, 0.5, 0.0], dtype=float)
     previous_input = model.hover_input()
     refs[0] = trajectory.output(0.0) # 即0.0s时的六个状态
@@ -103,7 +106,7 @@ def main() -> None:
         show=not args.no_show,
     )
     if args.no_show:
-        print("animation window skipped because --no-show was set")
+        print("已设置 --no-show，跳过动画窗口。")
         if summary_fig is not None:
             plt.close(summary_fig)
     else:
@@ -116,17 +119,17 @@ def main() -> None:
             show=True,
         )
 
-    print(f"saved figure: {figure_path}")
-    print(f"solver success rate: {success.mean() * 100.0:.1f}%")
-    print(f"mean position error: {position_error.mean():.3f} m")
-    print(f"max position error: {position_error.max():.3f} m")
-    print(f"final position error: {position_error[-1]:.3f} m")
+    print(f"结果图已保存至：{figure_path}")
+    print(f"求解成功率：{success.mean() * 100.0:.1f}%")
+    print(f"平均位置误差：{position_error.mean():.3f} m")
+    print(f"最大位置误差：{position_error.max():.3f} m")
+    print(f"终点位置误差：{position_error[-1]:.3f} m")
     print(
-        "mean attitude error: "
-        f"{attitude_error.mean():.3f} rad ({np.rad2deg(attitude_error.mean()):.2f} deg)"
+        "平均姿态误差："
+        f"{attitude_error.mean():.3f} rad（{np.rad2deg(attitude_error.mean()):.2f} deg）"
     )
-    print(f"mean ||u[k]-u[k-1]||: {control_delta.mean():.3f}" if len(control_delta) else "mean ||u[k]-u[k-1]||: 0.000")
-    print(f"last control [fx, fz, tau_x, tau_y, tau_z]: {controls[-1]}")
+    print(f"平均控制增量 ||u[k]-u[k-1]||：{control_delta.mean():.3f}" if len(control_delta) else "平均控制增量 ||u[k]-u[k-1]||：0.000")
+    print(f"最后一拍控制量 [fx, fz, tau_x, tau_y, tau_z]：{controls[-1]}")
 
 
 def parse_args() -> Namespace: # Namespace是argparse模块中的一个类，用于存储命令行参数的解析结果
@@ -143,19 +146,19 @@ def parse_args() -> Namespace: # Namespace是argparse模块中的一个类，用
     parser.add_argument(
         "--no-show",
         action="store_true", # 如果命令行传了"--no-show"就会将args.no_show设置为True，否则为False
-        help="skip the Matplotlib animation window",
+        help="不打开 Matplotlib 动画窗口",
     )
     parser.add_argument(
         "--animation-step",
         type=int,
         default=1, # 可以传一个整数，不传的话默认是1
-        help="downsample animation frames to keep playback smooth",
+        help="动画帧下采样步长，增大可提升播放流畅度",
     )
     parser.add_argument(
         "--playback-speed",
         type=float,
         default=1.0,
-        help="animation playback speed multiplier; 1.0 means real simulation time",
+        help="动画播放速度倍数，1.0 表示与仿真时间一致",
     )
     return parser.parse_args()
 
@@ -188,15 +191,15 @@ def plot_results(
     grid = fig.add_gridspec(3, 2)
 
     ax_3d = fig.add_subplot(grid[0, 0], projection="3d")
-    ax_3d.plot(refs[:, 0], refs[:, 1], -refs[:, 2], "k--", label="reference")
+    ax_3d.plot(refs[:, 0], refs[:, 1], -refs[:, 2], "k--", label="参考轨迹")
     ax_3d.plot(states[:, 0], states[:, 1], -states[:, 2], "tab:blue", label="NMPC")
-    ax_3d.scatter(states[0, 0], states[0, 1], -states[0, 2], color="tab:green", s=35, label="start")
-    ax_3d.scatter(states[-1, 0], states[-1, 1], -states[-1, 2], color="tab:red", s=35, label="end")
+    ax_3d.scatter(states[0, 0], states[0, 1], -states[0, 2], color="tab:green", s=35, label="起点")
+    ax_3d.scatter(states[-1, 0], states[-1, 1], -states[-1, 2], color="tab:red", s=35, label="终点")
     set_equal_3d_axes(ax_3d, refs, states)
     ax_3d.set_xlabel("x [m]")
     ax_3d.set_ylabel("y [m]")
-    ax_3d.set_zlabel("height h=-z [m]")
-    ax_3d.set_title("3D Helix Tracking")
+    ax_3d.set_zlabel("高度 h=-z [m]")
+    ax_3d.set_title("三维螺旋线跟踪")
     ax_3d.legend()
 
     ax_position = fig.add_subplot(grid[0, 1])
@@ -205,11 +208,11 @@ def plot_results(
     actual_position = np.column_stack((states[:, 0], states[:, 1], -states[:, 2]))
     reference_position = np.column_stack((refs[:, 0], refs[:, 1], -refs[:, 2]))
     for idx, (label, color) in enumerate(zip(position_labels, position_colors, strict=True)):
-        ax_position.plot(time, reference_position[:, idx], "--", color=color, label=f"{label} ref")
-        ax_position.plot(time, actual_position[:, idx], "-", color=color, label=f"{label} actual")
-    ax_position.set_xlabel("time [s]")
-    ax_position.set_ylabel("position [m]")
-    ax_position.set_title("Reference And Actual Position")
+        ax_position.plot(time, reference_position[:, idx], "--", color=color, label=f"{label} 参考值")
+        ax_position.plot(time, actual_position[:, idx], "-", color=color, label=f"{label} 实际值")
+    ax_position.set_xlabel("时间 [s]")
+    ax_position.set_ylabel("位置 [m]")
+    ax_position.set_title("参考位置与实际位置")
     ax_position.ticklabel_format(useOffset=False)
     ax_position.grid(True)
     ax_position.legend(ncol=2, fontsize=8)
@@ -226,7 +229,7 @@ def plot_results(
             reference_euler_deg[:, idx],
             "--",
             color,
-            f"{label} ref",
+            f"{label} 参考值",
         )
         plot_wrapped_angle(
             ax_euler,
@@ -234,11 +237,11 @@ def plot_results(
             actual_euler_deg[:, idx],
             "-",
             color,
-            f"{label} actual",
+            f"{label} 实际值",
         )
-        ax_euler.set_xlabel("time [s]")
-        ax_euler.set_ylabel("Euler angle [deg]")
-        ax_euler.set_title("Reference And Actual Euler Angles (Wrapped)")
+        ax_euler.set_xlabel("时间 [s]")
+        ax_euler.set_ylabel("欧拉角 [deg]")
+        ax_euler.set_title("参考欧拉角与实际欧拉角（周期折返）")
         ax_euler.set_ylim(-185, 185)
         ax_euler.ticklabel_format(useOffset=False)
         ax_euler.grid(True)
@@ -246,9 +249,9 @@ def plot_results(
 
         ax_error = fig.add_subplot(grid[1, 1])
         ax_error.plot(time, position_error, "tab:red")
-        ax_error.set_xlabel("time [s]")
-        ax_error.set_ylabel("position error [m]")
-        ax_error.set_title("Tracking Error")
+        ax_error.set_xlabel("时间 [s]")
+        ax_error.set_ylabel("位置误差 [m]")
+        ax_error.set_title("跟踪误差")
         ax_error.grid(True)
 
     ax_control = fig.add_subplot(grid[2, :])
@@ -256,8 +259,8 @@ def plot_results(
     labels = ("fx", "fz", "tau_x", "tau_y", "tau_z")
     for idx, label in enumerate(labels):
         ax_control.plot(control_time, controls[:, idx], label=label)
-    ax_control.set_xlabel("time [s]")
-    ax_control.set_title("Virtual Inputs")
+    ax_control.set_xlabel("时间 [s]")
+    ax_control.set_title("虚拟控制输入")
     ax_control.grid(True)
     ax_control.legend(ncol=2)
 
@@ -336,10 +339,10 @@ def animate_helix_3d(
     fig = plt.figure(figsize=(9, 8))
     ax = fig.add_subplot(111, projection="3d")
 
-    ax.set_title("NMPC Helix Tracking")
+    ax.set_title("NMPC 螺旋线跟踪")
     ax.set_xlabel("X (m)")
     ax.set_ylabel("Y (m)")
-    ax.set_zlabel("Height h=-z (m)")
+    ax.set_zlabel("高度 h=-z (m)")
     ax.grid(True)
 
     ax.set_xlim(center[0] - radius, center[0] + radius)
@@ -355,12 +358,12 @@ def animate_helix_3d(
             "--",
             color="tab:green",
             lw=1.5,
-            label="Desired Helix",
+            label="期望螺旋线",
         )
 
     tracked_line, = ax.plot([], [], [], color="tab:blue", linewidth=2.0, label="NMPC")
-    vehicle_dot = ax.scatter([], [], [], color="tab:red", s=45, label="Vehicle")
-    tracked_trail, = ax.plot([], [], [], color="tab:orange", linewidth=1.8, label="Trail")
+    vehicle_dot = ax.scatter([], [], [], color="tab:red", s=45, label="飞行器")
+    tracked_trail, = ax.plot([], [], [], color="tab:orange", linewidth=1.8, label="实际轨迹")
     body_axis_length = 0.16 * radius
     body_axis_quivers = draw_body_axes(ax, pos_s[0], euler_s[0], body_axis_length)
     time_text = ax.text2D(0.03, 0.94, "", transform=ax.transAxes)
@@ -566,5 +569,5 @@ def set_equal_3d_axes(ax: plt.Axes, refs: np.ndarray, states: np.ndarray) -> Non
 
 
 if __name__ == "__main__":
-    print("Running...")
+    print("正在运行……")
     main()

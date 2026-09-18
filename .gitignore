@@ -64,3 +64,12 @@ logs/
 tmp/
 temp/
 *.tmp
+
+# Personal notes, reference papers and interview preparation (local only)
+/docs/
+/地平线*
+/*简历*
+/*面试*
+
+# Standalone scratch experiments
+/test.py
